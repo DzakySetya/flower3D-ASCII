@@ -9,13 +9,18 @@
   const L1 = normalize3(0.45, 0.72, 0.65);
   const L2 = normalize3(-0.6, 0.25, -0.55);
 
-  // Dominant blue tulip palettes (deep indigo base -> rich cobalt/azure -> bright sky rim)
+  // Distinct Dark Blue (Biru Tua) & Light Blue (Biru Muda) tulip palettes
   const TULIP_PALETTES = [
-    { name: 'royal-cobalt', base: [6, 18, 98], mid: [20, 88, 245], tip: [95, 192, 255] },
-    { name: 'sapphire-glow', base: [8, 26, 115], mid: [28, 112, 255], tip: [120, 212, 255] },
-    { name: 'vivid-azure', base: [10, 38, 130], mid: [36, 138, 255], tip: [142, 226, 255] },
-    { name: 'electric-blue', base: [12, 24, 122], mid: [44, 98, 255], tip: [115, 196, 255] },
-    { name: 'cerulean-ice', base: [10, 46, 138], mid: [48, 152, 255], tip: [165, 234, 255] }
+    // Biru Tua (Deep Midnight Cobalt)
+    { name: 'biru-tua-cobalt', shadeGroup: 'dark', base: [8, 22, 108], mid: [18, 62, 208], tip: [46, 118, 252] },
+    // Biru Muda (Luminous Sky Blue)
+    { name: 'biru-muda-sky', shadeGroup: 'light', base: [34, 112, 205], mid: [88, 188, 255], tip: [182, 236, 255] },
+    // Biru Tua (Deep Royal Sapphire)
+    { name: 'biru-tua-sapphire', shadeGroup: 'dark', base: [10, 28, 122], mid: [24, 78, 226], tip: [62, 136, 255] },
+    // Biru Muda (Ice Powder Blue)
+    { name: 'biru-muda-ice', shadeGroup: 'light', base: [48, 132, 218], mid: [118, 206, 255], tip: [212, 246, 255] },
+    // Biru Royal (Bridge Azure)
+    { name: 'biru-royal', shadeGroup: 'mid', base: [16, 48, 152], mid: [42, 128, 255], tip: [118, 198, 255] }
   ];
 
   // Canvas & DOM elements
@@ -150,53 +155,53 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 1. 3D Parametric Blue Tulip Generator (Sculpted Goblet + Pointed Tepals)
+  // 1. 3D Parametric Blue Tulip Generator (Water-Tight Goblet + Pointed Tepals)
   // ---------------------------------------------------------------------------
   function tulipPetalPos(u, v, phiCenter, isOuter, open) {
     const openEff = open * (isOuter ? 1.0 : 0.78);
-    // Plump rounded tulip cup lower belly, tapering cleanly at pointed tip
-    const belly = Math.sin(Math.pow(u, 0.65) * Math.PI);
-    const cupFlare = Math.pow(u, 1.45) * (0.04 + 0.17 * openEff);
-    const budClose = (1 - openEff * 0.82) * Math.pow(u, 1.7) * 0.11;
-    const rBase = 0.026 + 0.165 * belly + cupFlare - budClose + (isOuter ? 0.018 : 0);
+    // Classic plump egg-goblet belly in lower half, graceful chalice curve above
+    const belly = Math.sin(Math.pow(u, 0.64) * Math.PI);
+    const cupFlare = Math.pow(u, 1.48) * (0.032 + 0.125 * openEff);
+    const budClose = (1 - openEff * 0.84) * Math.pow(u, 1.72) * 0.095;
+    const rBase = 0.022 + 0.132 * belly + cupFlare - budClose + (isOuter ? 0.015 : 0);
 
-    // Deep spoon-like cup curvature + central midrib ridge
-    const spoonCup = (1 - v * v) * 0.036 * belly;
-    const tipReflex = u > 0.72 && openEff > 0.35
-      ? Math.pow((u - 0.72) / 0.28, 2) * 0.042 * openEff
+    const spoonCup = (1 - v * v) * 0.028 * belly;
+    const tipReflex = u > 0.75 && openEff > 0.35
+      ? Math.pow((u - 0.75) / 0.25, 2) * 0.026 * openEff
       : 0;
     const r = Math.max(0.01, rBase + spoonCup + tipReflex);
 
-    // Iconic pointed tulip petal arch: center (v=0) rises higher to a crisp point
-    const pointArch = (1 - Math.pow(Math.abs(v), 1.35)) * 0.055 * Math.pow(u, 1.4);
-    const h = u * (0.43 - 0.05 * openEff) + pointArch + (isOuter ? -0.008 : 0.014 * u);
+    // Distinct pointed tulip petal arch at tip
+    const pointArch = (1 - Math.pow(Math.abs(v), 1.3)) * 0.048 * Math.pow(u, 1.35);
+    const h = u * (0.37 - 0.04 * openEff) + pointArch + (isOuter ? -0.006 : 0.012 * u);
 
-    // Width swells in mid-cup and tapers sharply to 0 at u=1 so all 6 pointed tips separate cleanly!
-    const widthProfile = Math.sin(Math.pow(u, 0.62) * Math.PI);
-    const halfWidthAng = (isOuter ? 0.66 : 0.60) * Math.pow(widthProfile, 0.78) + 0.04 * (1 - u);
+    // Broad overlapping lower cup, tapering cleanly to 6 distinct pointed tips at u=1
+    const widthProfile = Math.sin(Math.pow(u, 0.60) * Math.PI);
+    const halfWidthAng = (isOuter ? 0.67 : 0.62) * Math.pow(widthProfile, 0.75) + 0.05 * (1 - u);
     const phi = phiCenter + v * halfWidthAng;
     return [r * Math.cos(phi), h, r * Math.sin(phi)];
   }
 
   function generateTulipLocalPoints(palette, open) {
     const pts = [];
-    const uSteps = 22;
-    const vSteps = 11;
+    const uSteps = 28;
+    const vSteps = 15;
+    const isLight = palette.shadeGroup === 'light';
 
     // 6 overlapping pointed tepals (3 inner, 3 outer)
     for (let k = 0; k < 6; k++) {
       const isOuter = k % 2 === 1;
       const phiCenter = (k * Math.PI) / 3;
-      const du = 0.018;
-      const dv = 0.05;
+      const du = 0.015;
+      const dv = 0.045;
 
       for (let iu = 0; iu < uSteps; iu++) {
         const u = (iu + 0.45) / uSteps;
         let baseCol;
-        if (u < 0.32) {
-          baseCol = lerpColor(palette.base, palette.mid, u / 0.32);
+        if (u < 0.34) {
+          baseCol = lerpColor(palette.base, palette.mid, u / 0.34);
         } else {
-          baseCol = lerpColor(palette.mid, palette.tip, Math.pow((u - 0.32) / 0.68, 0.9));
+          baseCol = lerpColor(palette.mid, palette.tip, Math.pow((u - 0.34) / 0.66, 0.88));
         }
 
         for (let iv = 0; iv < vSteps; iv++) {
@@ -212,7 +217,6 @@
           const vy = pv[1] - p[1];
           const vz = pv[2] - p[2];
 
-          // Outward-pointing surface normal (so interior of cup is back-facing and naturally dark!)
           let nx = vy * uz - vz * uy;
           let ny = vz * ux - vx * uz;
           let nz = vx * uy - vy * ux;
@@ -223,9 +227,11 @@
           }
           const n = normalize3(nx, ny, nz);
 
-          // Crisp petal edge & midrib sculpting + dark base AO for flower separation
-          const edgeRim = Math.pow(Math.abs(v), 2.2) * 26 * Math.pow(u, 0.7);
-          const ao = 0.42 + 0.58 * Math.pow(u, 0.48) * (isOuter ? 1.0 : 0.92);
+          // Subtle edge definition so overlapping tepals read clearly
+          const edgeRim = Math.pow(Math.abs(v), 2.6) * (isLight ? 18 : 22) * Math.pow(u, 0.7);
+          // Keep glyph density strong on both dark-blue and light-blue tulips!
+          const ao = 0.62 + 0.38 * Math.pow(u, 0.45) * (isOuter ? 1.0 : 0.93);
+          const colorCurve = 0.55 + 0.45 * Math.pow(u, 0.5);
           pts.push({
             x: p[0],
             y: p[1],
@@ -233,55 +239,79 @@
             nx: n[0],
             ny: n[1],
             nz: n[2],
-            r: clamp(baseCol[0] * ao + edgeRim * 0.35, 0, 255),
-            g: clamp(baseCol[1] * ao + edgeRim * 0.95, 0, 255),
-            b: clamp(baseCol[2] * ao + edgeRim * 1.45, 0, 255),
-            ao
+            r: clamp(baseCol[0] * colorCurve + edgeRim * 0.35, 0, 255),
+            g: clamp(baseCol[1] * colorCurve + edgeRim * 0.85, 0, 255),
+            b: clamp(baseCol[2] * colorCurve + edgeRim * 1.25, 0, 255),
+            ao,
+            splat: 1
           });
         }
       }
     }
 
-    // 6 inner stamens + golden-yellow pistil peeking inside open tulip chalice
-    for (let s = 0; s < 6; s++) {
-      const ang = (s * Math.PI) / 3 + 0.26;
-      const ca = Math.cos(ang);
-      const sa = Math.sin(ang);
-      const rad = 0.032 + 0.018 * open;
-      for (let j = 0; j < 4; j++) {
-        const f = (j + 1) / 4;
-        const isTip = j >= 2;
+    // Solid bottom cup plug so stem/background never shines up through receptacle
+    for (let ir = 0; ir < 4; ir++) {
+      const rad = (ir / 3) * 0.036;
+      for (let ic = 0; ic < 12; ic++) {
+        const ang = (ic * Math.PI * 2) / 12;
         pts.push({
-          x: ca * rad * (0.65 + 0.4 * f),
-          y: 0.05 + f * 0.16,
-          z: sa * rad * (0.65 + 0.4 * f),
-          nx: ca * 0.5,
-          ny: 0.86,
-          nz: sa * 0.5,
-          r: isTip ? 250 : 20,
-          g: isTip ? 215 : 42,
-          b: isTip ? 95 : 120,
-          ao: isTip ? 0.95 : 0.5
+          x: Math.cos(ang) * rad,
+          y: 0.005,
+          z: Math.sin(ang) * rad,
+          nx: Math.cos(ang) * 0.4,
+          ny: -0.9,
+          nz: Math.sin(ang) * 0.4,
+          r: palette.base[0],
+          g: palette.base[1],
+          b: palette.base[2],
+          ao: 0.6,
+          splat: 1
         });
       }
     }
 
-    // Sculpted green receptacle base joining stem
+    // 6 inner stamens + golden-cream anthers peeking inside open tulip chalice
+    for (let s = 0; s < 6; s++) {
+      const ang = (s * Math.PI) / 3 + 0.26;
+      const ca = Math.cos(ang);
+      const sa = Math.sin(ang);
+      const rad = 0.026 + 0.015 * open;
+      for (let j = 0; j < 4; j++) {
+        const f = (j + 1) / 4;
+        const isTip = j >= 2;
+        pts.push({
+          x: ca * rad * (0.65 + 0.38 * f),
+          y: 0.04 + f * 0.14,
+          z: sa * rad * (0.65 + 0.38 * f),
+          nx: ca * 0.5,
+          ny: 0.86,
+          nz: sa * 0.5,
+          r: isTip ? 250 : 18,
+          g: isTip ? 218 : 38,
+          b: isTip ? 105 : 112,
+          ao: isTip ? 0.95 : 0.55,
+          splat: 0
+        });
+      }
+    }
+
+    // Green calyx collar joining stem
     for (let c = 0; c < 14; c++) {
       const ang = (c * Math.PI * 2) / 14;
       const ca = Math.cos(ang);
       const sa = Math.sin(ang);
       pts.push({
-        x: ca * 0.034,
-        y: -0.01,
-        z: sa * 0.034,
+        x: ca * 0.032,
+        y: -0.012,
+        z: sa * 0.032,
         nx: ca,
         ny: -0.35,
         nz: sa,
-        r: 32,
-        g: 152,
-        b: 76,
-        ao: 0.75
+        r: 30,
+        g: 148,
+        b: 72,
+        ao: 0.78,
+        splat: 1
       });
     }
 
@@ -289,63 +319,68 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 2. 3D Parametric Sunflower Generator (Dark Espresso Disk + Spiky Sun Rays)
+  // 2. 3D Parametric Sunflower Generator (Water-Tight Disk + Spiky Sun Rays)
   // ---------------------------------------------------------------------------
   function generateSunflowerLocalPoints(open) {
     const pts = [];
 
-    // High-contrast Dark Espresso Fibonacci seed disk (240 seeds)
-    const numSeeds = 240;
-    const diskRadius = 0.195;
-    for (let i = 0; i < numSeeds; i++) {
-      const t = (i + 0.5) / numSeeds;
-      const rad = diskRadius * Math.sqrt(t);
-      const theta = i * GOLDEN_ANGLE;
-      const domeY = 0.058 * Math.cos(t * Math.PI * 0.46);
-      const x = rad * Math.cos(theta);
-      const z = rad * Math.sin(theta);
+    // Water-tight concentric polar seed disk (~560 points -> ZERO pinholes!)
+    const diskRadius = 0.145;
+    const rRings = 16;
+    for (let ir = 0; ir <= rRings; ir++) {
+      const t = ir / rRings;
+      const rad = diskRadius * t;
+      const domeY = 0.048 * Math.cos(t * Math.PI * 0.46);
+      const slope = 0.36 * t;
+      const ringCount = Math.max(6, Math.round(10 + 48 * t));
 
-      const slope = 0.36 * Math.sqrt(t);
-      const n = normalize3(Math.cos(theta) * slope, 1, Math.sin(theta) * slope);
+      for (let it = 0; it < ringCount; it++) {
+        const theta = (it * Math.PI * 2) / ringCount + ir * GOLDEN_ANGLE * 0.35;
+        const cp = Math.cos(theta);
+        const sp = Math.sin(theta);
+        const n = normalize3(cp * slope, 1, sp * slope);
 
-      // Keep center disk genuinely dark chocolate-brown with a thin warm pollen ring at rim
-      let col;
-      let seedAo;
-      if (t < 0.65) {
-        col = lerpColor([42, 18, 5], [76, 36, 10], t / 0.65);
-        seedAo = 0.38 + (i % 3) * 0.08;
-      } else if (t < 0.88) {
-        col = lerpColor([76, 36, 10], [128, 62, 12], (t - 0.65) / 0.23);
-        seedAo = 0.48 + (i % 2) * 0.08;
-      } else {
-        col = lerpColor([165, 88, 12], [235, 148, 14], (t - 0.88) / 0.12);
-        seedAo = 0.72;
+        // Rich roasted-espresso brown disk (solid glyph density ao ~0.68 so never transparent!)
+        let col;
+        let seedAo;
+        if (t < 0.62) {
+          col = lerpColor([72, 34, 10], [108, 52, 14], t / 0.62);
+          seedAo = 0.62 + ((ir + it) % 2) * 0.10;
+        } else if (t < 0.86) {
+          col = lerpColor([108, 52, 14], [156, 78, 16], (t - 0.62) / 0.24);
+          seedAo = 0.70 + ((ir + it) % 2) * 0.08;
+        } else {
+          col = lerpColor([185, 98, 14], [242, 158, 16], (t - 0.86) / 0.14);
+          seedAo = 0.84;
+        }
+
+        pts.push({
+          x: rad * cp,
+          y: domeY,
+          z: rad * sp,
+          nx: n[0],
+          ny: n[1],
+          nz: n[2],
+          r: col[0],
+          g: col[1],
+          b: col[2],
+          ao: seedAo,
+          splat: 1
+        });
       }
-
-      pts.push({
-        x,
-        y: domeY,
-        z,
-        nx: n[0],
-        ny: n[1],
-        nz: n[2],
-        r: col[0],
-        g: col[1],
-        b: col[2],
-        ao: seedAo
-      });
     }
 
-    // 20 distinct, well-separated pointed golden-yellow ray petals + 20 shorter inner offset petals
+    // 16 primary pointed golden ray petals + 16 shorter inner offset petals
+    // Total head radius ~ 0.145 * 0.86 + 0.185 = 0.31 (collision-free with neighbors!)
     const ringConfigs = [
-      { count: 18, offset: 0, len: 0.275, width: 0.036, pitchOpen: 0.06, aoBoost: 1.0 },
-      { count: 18, offset: Math.PI / 18, len: 0.215, width: 0.030, pitchOpen: 0.18, aoBoost: 0.88 }
+      { count: 16, offset: 0, len: 0.185, width: 0.029, pitchOpen: 0.05, aoBoost: 1.0 },
+      { count: 16, offset: Math.PI / 16, len: 0.145, width: 0.024, pitchOpen: 0.16, aoBoost: 0.9 }
     ];
 
     for (let rIdx = 0; rIdx < ringConfigs.length; rIdx++) {
       const cfg = ringConfigs[rIdx];
-      const uSteps = 12;
-      const vSteps = 5;
+      const uSteps = 16;
+      const vSteps = 7;
 
       for (let k = 0; k < cfg.count; k++) {
         const phi = (k * Math.PI * 2) / cfg.count + cfg.offset;
@@ -354,21 +389,20 @@
         const tx = -sp;
         const tz = cp;
 
-        const basePitch = lerp(1.18, cfg.pitchOpen, open);
+        const basePitch = lerp(1.15, cfg.pitchOpen, open);
 
         for (let iu = 0; iu < uSteps; iu++) {
           const u = (iu + 0.4) / uSteps;
-          const pitch = basePitch - 0.18 * u * open;
+          const pitch = basePitch - 0.15 * u * open;
           const distOut = diskRadius * 0.86 + u * cfg.len * Math.cos(pitch);
-          const yOff = 0.018 + u * cfg.len * Math.sin(pitch) - 0.028 * u * u * open;
-          // Sharp lancet point: widens early, then tapers cleanly to a sharp tip so rays separate!
-          const halfW = cfg.width * Math.sin(Math.pow(u, 0.55) * Math.PI) * (1 - 0.35 * u * u);
+          const yOff = 0.015 + u * cfg.len * Math.sin(pitch) - 0.02 * u * u * open;
+          const halfW = cfg.width * Math.sin(Math.pow(u, 0.52) * Math.PI) * (1 - 0.38 * u * u);
 
           let col;
           if (u < 0.28) {
-            col = lerpColor([235, 142, 8], [255, 208, 18], u / 0.28);
+            col = lerpColor([238, 148, 10], [255, 212, 22], u / 0.28);
           } else {
-            col = lerpColor([255, 208, 18], [255, 246, 115], (u - 0.28) / 0.72);
+            col = lerpColor([255, 212, 22], [255, 246, 118], (u - 0.28) / 0.72);
           }
 
           const n = normalize3(
@@ -381,8 +415,8 @@
             const v = -1 + (2 * iv) / (vSteps - 1);
             const x = distOut * cp + v * halfW * tx;
             const z = distOut * sp + v * halfW * tz;
-            const y = yOff + (1 - Math.abs(v)) * 0.01;
-            const ao = cfg.aoBoost * (0.78 + 0.22 * u);
+            const y = yOff + (1 - Math.abs(v)) * 0.008;
+            const ao = cfg.aoBoost * (0.82 + 0.18 * u);
 
             pts.push({
               x,
@@ -394,33 +428,36 @@
               r: col[0],
               g: col[1],
               b: col[2],
-              ao
+              ao,
+              splat: 1
             });
           }
         }
       }
     }
 
-    // 16 green involucre bracts tucked underneath the seed disk
-    for (let b = 0; b < 16; b++) {
-      const phi = (b * Math.PI * 2) / 16 + 0.1;
-      const cp = Math.cos(phi);
-      const sp = Math.sin(phi);
-      for (let j = 0; j < 5; j++) {
-        const f = (j + 1) / 5;
-        const rad = 0.07 + f * 0.145;
-        const y = -0.025 - (1 - f) * 0.028 + f * 0.012;
+    // Solid green involucre backing plate + bracts underneath the seed disk
+    for (let ir = 0; ir <= 8; ir++) {
+      const f = ir / 8;
+      const rad = f * 0.165;
+      const ringN = Math.max(6, Math.round(8 + 24 * f));
+      for (let b = 0; b < ringN; b++) {
+        const phi = (b * Math.PI * 2) / ringN + ir * 0.2;
+        const cp = Math.cos(phi);
+        const sp = Math.sin(phi);
+        const y = -0.018 - (1 - f) * 0.022 + f * 0.008;
         pts.push({
           x: rad * cp,
           y,
           z: rad * sp,
-          nx: cp * 0.5,
-          ny: -0.85,
-          nz: sp * 0.5,
-          r: lerp(22, 58, f),
-          g: lerp(108, 178, f),
-          b: lerp(46, 84, f),
-          ao: 0.72
+          nx: cp * 0.45,
+          ny: -0.88,
+          nz: sp * 0.45,
+          r: lerp(22, 56, f),
+          g: lerp(108, 174, f),
+          b: lerp(44, 82, f),
+          ao: 0.74,
+          splat: 1
         });
       }
     }
@@ -429,73 +466,76 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 3. Bouquet Layout (12 Hero Blue Tulips + 3 Hero Sunflowers = 15 Blooms)
+  // 3. Collision-Free Bouquet Layout (13 Blue Tulips [Tua & Muda] + 3 Sunflowers = 16)
   // ---------------------------------------------------------------------------
   function initFlowers() {
     flowers.length = 0;
     const rng = createRng(20261124);
     const specs = [];
 
-    // Tier 1: Upper Crown (3 Blue Tulips standing tall with clear separation)
-    for (let i = 0; i < 3; i++) {
-      const theta = 0.85 + (i * Math.PI * 2) / 3;
+    // Curated alternating order so Biru Tua & Biru Muda sit side-by-side cleanly:
+    // 0: cobalt (tua), 1: sky (muda), 2: sapphire (tua), 3: ice (muda), 4: royal (mid)
+    const crownPalettes = [0, 1, 2, 3]; // Tua, Muda, Tua, Muda
+    const midTulipPalettes = [4, 1, 0]; // Royal, Muda, Tua
+    const outerPalettes = [1, 2, 3, 0, 1, 2]; // Muda, Tua, Muda, Tua, Muda, Tua
+
+    // Tier 1: Upper Crown (4 Tulips at rad = 0.27 -> chord = 0.382 > 0.34!)
+    for (let i = 0; i < 4; i++) {
+      const theta = 0.55 + (i * Math.PI * 2) / 4;
       specs.push({
         type: 'tulip',
+        paletteIdx: crownPalettes[i],
         theta,
-        tilt: 0.18 + i * 0.02,
-        y: 0.94 - i * 0.02,
-        rad: 0.20,
-        scale: 1.08,
-        startTime: 0.2 + i * 0.3
+        tilt: 0.17,
+        y: 1.02 - (i % 2) * 0.02,
+        rad: 0.27,
+        scale: 1.0,
+        startTime: 0.2 + i * 0.22
       });
     }
 
-    // Tier 2: Middle Hero Ring (6 flowers: 3 Sunflowers 120° apart + 3 Blue Tulips alternating!)
-    // Guarantees 1-2 big, unobstructed Sunflowers face the viewer at ANY 360° rotation angle!
+    // Tier 2: Middle Ring (6 blooms: 3 Sunflowers + 3 Tulips alternating 60° apart)
+    let midTulipCounter = 0;
     for (let i = 0; i < 6; i++) {
       const theta = 0.32 + (i * Math.PI * 2) / 6;
       const isSunflower = i % 2 === 0;
       specs.push({
         type: isSunflower ? 'sunflower' : 'tulip',
-        theta: theta + (isSunflower ? 0 : (rng() - 0.5) * 0.08),
-        tilt: isSunflower ? 0.44 : 0.38 + rng() * 0.08,
-        y: isSunflower ? 0.69 : 0.66 + rng() * 0.06,
-        rad: isSunflower ? 0.48 : 0.44 + rng() * 0.04,
-        scale: isSunflower ? 1.12 : 1.04 + rng() * 0.06,
-        startTime: 0.9 + i * 0.35
+        paletteIdx: isSunflower ? -1 : midTulipPalettes[midTulipCounter++],
+        theta,
+        tilt: isSunflower ? 0.48 : 0.40,
+        y: isSunflower ? 0.76 : 0.68,
+        rad: isSunflower ? 0.66 : 0.57,
+        scale: isSunflower ? 1.02 : 1.0,
+        startTime: 0.95 + i * 0.3
       });
     }
 
-    // Tier 3: Outer Tulip Halo (6 sculpted Blue Tulips framing the entire bouquet)
+    // Tier 3: Outer Rim (6 Tulips staggered at exact +30° midpoints between Tier 2 blooms!)
     for (let i = 0; i < 6; i++) {
-      const theta = (i * Math.PI * 2) / 6 + 0.05;
+      const theta = 0.32 + ((i + 0.5) * Math.PI * 2) / 6;
       specs.push({
         type: 'tulip',
-        theta: theta + (rng() - 0.5) * 0.1,
-        tilt: 0.62 + rng() * 0.1,
-        y: 0.38 + rng() * 0.08,
-        rad: 0.70 + rng() * 0.05,
-        scale: 1.04 + rng() * 0.08,
-        startTime: 2.2 + i * 0.35
+        paletteIdx: outerPalettes[i],
+        theta,
+        tilt: 0.72,
+        y: 0.28 + (i % 2) * 0.02,
+        rad: 0.88,
+        scale: 1.0,
+        startTime: 2.2 + i * 0.32
       });
     }
 
-    let tulipIdx = 0;
     for (let i = 0; i < specs.length; i++) {
       const sp = specs[i];
       const ct = Math.cos(sp.theta);
       const st = Math.sin(sp.theta);
       const pos = [sp.rad * ct, sp.y, sp.rad * st];
-      // Stem points upward and flares outward according to tilt
       const sinTilt = Math.sin(sp.tilt);
       const cosTilt = Math.cos(sp.tilt);
       const dir = normalize3(sinTilt * ct, cosTilt, sinTilt * st);
       const basis = buildBasis(dir);
-
-      const palette = sp.type === 'tulip'
-        ? TULIP_PALETTES[tulipIdx % TULIP_PALETTES.length]
-        : null;
-      if (sp.type === 'tulip') tulipIdx++;
+      const palette = sp.type === 'tulip' ? TULIP_PALETTES[sp.paletteIdx] : null;
 
       flowers.push({
         id: i,
@@ -506,7 +546,7 @@
         basis,
         scale: sp.scale,
         startTime: sp.startTime,
-        duration: 2.85 + rng() * 0.55,
+        duration: 2.8 + rng() * 0.5,
         cachedOpen: -1,
         localPoints: []
       });
@@ -514,17 +554,44 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 4. Static Bouquet Geometry (Stems, Leaves, Baby's Breath, Paper Wrap, Ribbon)
+  // 4. Static Bouquet Geometry (Collision-Free Stems, Outer Leaves, Wrap, Ribbon)
   // ---------------------------------------------------------------------------
   function buildStaticGeometry() {
     staticPoints.length = 0;
     const rng = createRng(88421);
 
-    // A. Curved Green Stems passing through pinched waist (0, -0.44, 0)
-    const waistY = -0.44;
+    // Precompute flower head obstacle centers & clearance radii so foliage/gypsophila NEVER pierce blooms!
+    const obstacles = flowers.map((fl) => {
+      const headOffset = fl.type === 'tulip' ? 0.19 * fl.scale : 0.05 * fl.scale;
+      return {
+        cx: fl.pos[0] + fl.dir[0] * headOffset,
+        cy: fl.pos[1] + fl.dir[1] * headOffset,
+        cz: fl.pos[2] + fl.dir[2] * headOffset,
+        clearR: fl.type === 'tulip' ? 0.21 * fl.scale : 0.34 * fl.scale
+      };
+    });
+
+    function hitsAnyFlower(px, py, pz) {
+      for (let m = 0; m < obstacles.length; m++) {
+        const ob = obstacles[m];
+        const dx = px - ob.cx;
+        const dy = py - ob.cy;
+        const dz = pz - ob.cz;
+        if (dx * dx + dy * dy + dz * dz < ob.clearR * ob.clearR) return true;
+      }
+      return false;
+    }
+
+    // A. Curved Green Stems ending strictly below each flower receptacle
+    const waistY = -0.50;
     for (let i = 0; i < flowers.length; i++) {
       const fl = flowers[i];
-      const top = fl.pos;
+      // Terminate stem 0.025 below flower base so stem never pokes into cup/disk
+      const top = [
+        fl.pos[0] - fl.dir[0] * 0.025,
+        fl.pos[1] - fl.dir[1] * 0.025,
+        fl.pos[2] - fl.dir[2] * 0.025
+      ];
       const theta = Math.atan2(top[2], top[0]);
       const waistRad = 0.065 * (0.4 + 0.6 * rng());
       const mid = [
@@ -535,23 +602,23 @@
       const botRad = 0.15 + 0.09 * rng();
       const bot = [
         botRad * Math.cos(theta + 0.25),
-        -1.14 - rng() * 0.06,
+        -1.18 - rng() * 0.05,
         botRad * Math.sin(theta + 0.25)
       ];
 
-      // Upper stem segment: quadratic Bezier from top -> mid
+      // Curve stem inward underneath the canopy so inner stems never slice outer flowers!
       const ctrlTop = [
-        top[0] * 0.52 + mid[0] * 0.48,
-        lerp(top[1], mid[1], 0.55),
-        top[2] * 0.52 + mid[2] * 0.48
+        top[0] * 0.38 + mid[0] * 0.62,
+        lerp(top[1], mid[1], 0.48),
+        top[2] * 0.38 + mid[2] * 0.62
       ];
-      for (let s = 0; s <= 26; s++) {
-        const t = s / 26;
+      for (let s = 0; s <= 28; s++) {
+        const t = s / 28;
         const omt = 1 - t;
         const cx = omt * omt * top[0] + 2 * omt * t * ctrlTop[0] + t * t * mid[0];
         const cy = omt * omt * top[1] + 2 * omt * t * ctrlTop[1] + t * t * mid[1];
         const cz = omt * omt * top[2] + 2 * omt * t * ctrlTop[2] + t * t * mid[2];
-        const rad = fl.type === 'sunflower' ? 0.018 : 0.015;
+        const rad = fl.type === 'sunflower' ? 0.019 : 0.015;
         for (let k = 0; k < 4; k++) {
           const ang = (k * Math.PI) / 2 + t * 0.7;
           const ca = Math.cos(ang);
@@ -564,13 +631,14 @@
             ny: 0.15,
             nz: sa,
             r: lerp(38, 22, t),
-            g: lerp(155, 112, t),
-            b: lerp(82, 58, t)
+            g: lerp(158, 112, t),
+            b: lerp(80, 56, t),
+            ao: 0.72,
+            splat: 0
           });
         }
       }
 
-      // Lower stem tail: mid -> bot
       for (let s = 1; s <= 18; s++) {
         const t = s / 18;
         const cx = lerp(mid[0], bot[0], t);
@@ -589,39 +657,42 @@
             nz: sa,
             r: 24,
             g: 112,
-            b: 58
+            b: 58,
+            ao: 0.65,
+            splat: 0
           });
         }
       }
     }
 
-    // B. 14 Broad Pointed Tulip Leaves arching gracefully around the stems & rim
-    for (let i = 0; i < 14; i++) {
-      const phi = (i * Math.PI * 2) / 14 + (rng() - 0.5) * 0.14;
+    // B. 12 Broad Pointed Tulip Leaves placed strictly in the outer perimeter gaps
+    for (let i = 0; i < 12; i++) {
+      const phi = 0.32 + (i * Math.PI * 2) / 12;
       const cp = Math.cos(phi);
       const sp = Math.sin(phi);
       const tx = -sp;
       const tz = cp;
-      const leafLen = 0.78 + rng() * 0.18;
-      const maxWidth = 0.092 + rng() * 0.022;
-      const startY = -0.36 + rng() * 0.12;
-      const startRad = 0.15 + rng() * 0.04;
-      const archOut = 0.68 + rng() * 0.14;
+      const leafLen = 0.62 + (i % 2) * 0.10;
+      const maxWidth = 0.088;
+      const startY = -0.46;
+      const startRad = 0.16;
+      const archOut = 0.92 + (i % 2) * 0.08;
 
       for (let iu = 0; iu < 22; iu++) {
         const u = iu / 21;
-        const rad = startRad + archOut * Math.pow(u, 1.08);
-        const y = startY + leafLen * (u * 0.96 - 0.34 * u * u);
-        // Sharp pointed tulip leaf tip
+        const rad = startRad + archOut * Math.pow(u, 0.92);
+        const y = startY + leafLen * (u * 0.98 - 0.24 * u * u);
         const w = maxWidth * Math.sin(Math.pow(u, 0.65) * Math.PI) * (1 - 0.25 * u * u);
-        const col = lerpColor([16, 88, 44], [64, 206, 118], Math.pow(u, 0.85));
+        const col = lerpColor([16, 92, 46], [68, 212, 122], Math.pow(u, 0.85));
 
         for (let iv = 0; iv < 5; iv++) {
           const v = -1 + (2 * iv) / 4;
-          const trough = Math.abs(v) * 0.024 * Math.sin(u * Math.PI);
+          const trough = Math.abs(v) * 0.022 * Math.sin(u * Math.PI);
           const px = rad * cp + v * w * tx;
           const pz = rad * sp + v * w * tz;
           const py = y + trough;
+          if (hitsAnyFlower(px, py, pz)) continue;
+
           const n = normalize3(cp * 0.7 + tx * v * 0.4, 0.6, sp * 0.7 + tz * v * 0.4);
           staticPoints.push({
             x: px,
@@ -633,63 +704,67 @@
             r: col[0],
             g: col[1],
             b: col[2],
-            ao: 0.55 + 0.45 * u
+            ao: 0.62 + 0.38 * u,
+            splat: 1
           });
         }
       }
     }
 
-    // C. ~40 Delicate Baby's Breath (Gypsophila) Accent Florets
-    for (let i = 0; i < 40; i++) {
+    // C. Delicate Baby's Breath florets strictly in open gaps (NEVER inside flowers!)
+    let gypPlaced = 0;
+    let gypAttempts = 0;
+    while (gypPlaced < 28 && gypAttempts < 240) {
+      gypAttempts++;
       const phi = rng() * Math.PI * 2;
-      const rad = 0.32 + rng() * 0.44;
-      const y = 0.28 + rng() * 0.64;
+      const rad = 0.38 + rng() * 0.56;
+      const y = 0.26 + rng() * 0.66;
       const cx = rad * Math.cos(phi);
       const cz = rad * Math.sin(phi);
-      for (let d = 0; d < 2; d++) {
-        staticPoints.push({
-          x: cx + (rng() - 0.5) * 0.03,
-          y: y + (rng() - 0.5) * 0.03,
-          z: cz + (rng() - 0.5) * 0.03,
-          nx: Math.cos(phi) * 0.5,
-          ny: 0.86,
-          nz: Math.sin(phi) * 0.5,
-          r: 220,
-          g: 238,
-          b: 255,
-          ao: 0.9
-        });
-      }
+      if (hitsAnyFlower(cx, y, cz)) continue;
+      gypPlaced++;
+      staticPoints.push({
+        x: cx,
+        y,
+        z: cz,
+        nx: Math.cos(phi) * 0.5,
+        ny: 0.86,
+        nz: Math.sin(phi) * 0.5,
+        r: 226,
+        g: 242,
+        b: 255,
+        ao: 0.92,
+        splat: 0
+      });
     }
 
-    // D. 360°-Symmetric Scalloped Translucent Wrapping Paper (NEVER blocks flowers!)
+    // D. 360°-Symmetric Scalloped Wrapping Paper staying strictly BELOW Tier 3 blooms (topY <= 0.16!)
     const uLayers = [
-      { radScale: 1.0, phase: 0.0, yShift: 0.0, tint: [115, 134, 168] },
-      { radScale: 1.07, phase: 0.52, yShift: -0.05, tint: [92, 110, 144] }
+      { radScale: 1.0, phase: 0.0, yShift: 0.0, tint: [118, 138, 174] },
+      { radScale: 1.07, phase: 0.52, yShift: -0.04, tint: [96, 114, 150] }
     ];
 
     for (let l = 0; l < uLayers.length; l++) {
       const layer = uLayers[l];
       const uSteps = 16;
-      const tSteps = 60;
+      const tSteps = 64;
       for (let iu = 0; iu < uSteps; iu++) {
         const u = iu / (uSteps - 1);
         for (let it = 0; it < tSteps; it++) {
           const theta = (it / tSteps) * Math.PI * 2;
-          // Gentle 6-petal florist fold scallop all around 360°; stays strictly below y ~ 0.32!
-          const scallop = 0.065 * Math.cos(theta * 6 + layer.phase * 2);
-          const topY = 0.24 + scallop + layer.yShift;
-          const pleatWave = Math.sin(theta * 12 + layer.phase);
+          const scallop = 0.055 * Math.cos(theta * 7 + layer.phase * 2);
+          const topY = 0.11 + scallop + layer.yShift;
+          const pleatWave = Math.sin(theta * 14 + layer.phase);
           const pleat = 0.042 * pleatWave * Math.pow(u, 0.85);
-          const rad = (0.18 + 0.78 * Math.pow(u, 0.88) + pleat) * layer.radScale;
+          const rad = (0.18 + 0.86 * Math.pow(u, 0.88) + pleat) * layer.radScale;
           const y = lerp(waistY, topY, u);
 
           const isRim = iu === uSteps - 1;
           const col = isRim
-            ? [195, 214, 242]
+            ? [204, 222, 248]
             : lerpColor(
-                [layer.tint[0] - 20, layer.tint[1] - 18, layer.tint[2] - 12],
-                [172, 190, 220],
+                [layer.tint[0] - 18, layer.tint[1] - 16, layer.tint[2] - 10],
+                [176, 196, 226],
                 u * 0.85 + Math.max(0, pleatWave) * 0.15
               );
           const n = normalize3(
@@ -707,25 +782,26 @@
             r: col[0],
             g: col[1],
             b: col[2],
-            ao: isRim ? 0.85 : 0.45 + 0.25 * u
+            ao: isRim ? 0.88 : 0.48 + 0.25 * u,
+            splat: 0
           });
         }
       }
     }
 
     // Lower flared paper skirt from waist down to bottom
-    const lowUSteps = 11;
-    const lowTSteps = 40;
+    const lowUSteps = 12;
+    const lowTSteps = 42;
     for (let iu = 0; iu < lowUSteps; iu++) {
       const u = iu / (lowUSteps - 1);
       for (let it = 0; it < lowTSteps; it++) {
         const theta = (it / lowTSteps) * Math.PI * 2;
         const pleatWave = Math.sin(theta * 8 + 0.2);
         const pleat = 0.036 * pleatWave * u;
-        const rad = 0.18 + 0.28 * Math.pow(u, 0.9) + pleat;
-        const y = lerp(waistY, -1.12, u);
+        const rad = 0.18 + 0.29 * Math.pow(u, 0.9) + pleat;
+        const y = lerp(waistY, -1.18, u);
         const ridgeLift = pleatWave * 14 * u;
-        const baseCol = lerpColor([148, 166, 198], [108, 126, 158], u);
+        const baseCol = lerpColor([152, 170, 202], [108, 126, 158], u);
         const n = normalize3(Math.cos(theta), 0.25, Math.sin(theta));
         staticPoints.push({
           x: rad * Math.cos(theta),
@@ -737,7 +813,8 @@
           r: clamp(baseCol[0] + ridgeLift, 0, 255),
           g: clamp(baseCol[1] + ridgeLift, 0, 255),
           b: clamp(baseCol[2] + ridgeLift * 0.85, 0, 255),
-          ao: 0.52
+          ao: 0.55,
+          splat: 0
         });
       }
     }
@@ -930,19 +1007,29 @@
     bBuf = new Uint8Array(total);
     bucketNext = new Int32Array(total);
 
-    centerYRatio = isMobile ? 0.48 : 0.51;
-    // Generous framing so individual tulips and sunflowers read clearly
-    const usableH = viewH * (isMobile ? 0.78 : 0.88);
+    centerYRatio = isMobile ? 0.50 : 0.54;
+    // Generous framing with clean top starry headroom (~2.64 tall x 2.38 wide)
+    const usableH = viewH * (isMobile ? 0.78 : 0.82);
     const usableW = viewW * (isMobile ? 0.92 : 0.86);
-    fovScale = Math.min(usableH / 2.42, usableW / 2.08);
+    fovScale = Math.min(usableH / 2.64, usableW / 2.38);
   }
 
   // ---------------------------------------------------------------------------
-  // 7. Projection & Shading Pipeline
+  // 7. Projection & Water-Tight Shading Pipeline (Sub-cell Z-Splatting)
   // ---------------------------------------------------------------------------
-  function projectPoint(wx, wy, wz, wnx, wny, wnz, cr, cg, cb, ao, sinY, cosY, sinX, cosX, swaySin, zoomScale, cxPx, cyPx) {
-    // Gentle organic wind sway proportional to height above waist
-    const swayAmt = Math.max(0, wy + 0.45) * 0.025 * swaySin;
+  function writeCell(col, row, zVal, charIdx, rr, gg, bb) {
+    if (col < 0 || col >= cols || row < 0 || row >= rows) return;
+    const idx = row * cols + col;
+    if (zVal <= zBuf[idx]) return;
+    zBuf[idx] = zVal;
+    charBuf[idx] = charIdx;
+    rBuf[idx] = rr;
+    gBuf[idx] = gg;
+    bBuf[idx] = bb;
+  }
+
+  function projectPoint(wx, wy, wz, wnx, wny, wnz, cr, cg, cb, ao, splat, sinY, cosY, sinX, cosX, swaySin, zoomScale, cxPx, cyPx) {
+    const swayAmt = Math.max(0, wy + 0.50) * 0.025 * swaySin;
     const sx = wx + swayAmt;
 
     // Rotate around Y then X
@@ -955,16 +1042,12 @@
     if (depth <= 0.45) return;
 
     const persp = (camDist / depth) * zoomScale;
-    const px = cxPx + x1 * persp * fovScale;
-    const py = cyPx - y2 * persp * fovScale;
+    const fx = (cxPx + x1 * persp * fovScale) / cellW;
+    const fy = (cyPx - y2 * persp * fovScale) / cellH;
 
-    const col = (px / cellW) | 0;
-    const row = (py / cellH) | 0;
+    const col = fx | 0;
+    const row = fy | 0;
     if (col < 0 || col >= cols || row < 0 || row >= rows) return;
-
-    const idx = row * cols + col;
-    if (z2 <= zBuf[idx]) return;
-    zBuf[idx] = z2;
 
     // Rotate normal
     const nx1 = wnx * cosY + wnz * sinY;
@@ -972,28 +1055,40 @@
     const ny2 = wny * cosX - nz1 * sinX;
     const nz2 = wny * sinX + nz1 * cosX;
 
-    // True front-vs-back cup interior shading: inner cup (nz2 < 0) stays deeply shadowed!
-    const isFront = nz2 >= -0.08;
+    const isFront = nz2 >= -0.06;
     const dot1 = nx1 * L1[0] + ny2 * L1[1] + nz2 * L1[2];
     const diff1 = isFront
-      ? Math.max(0, dot1) * 0.88 + 0.12
-      : 0.18 + Math.max(0, -dot1) * 0.18;
+      ? Math.max(0, dot1) * 0.85 + 0.15
+      : 0.22 + Math.max(0, -dot1) * 0.16;
     const dot2 = isFront ? Math.max(0, nx1 * L2[0] + ny2 * L2[1] + nz2 * L2[2]) : 0;
-    const rim = isFront ? Math.pow(1 - Math.min(1, Math.abs(nz2)), 2.2) * 0.28 : 0.04;
-    const depthBoost = clamp((z2 + 0.8) * 0.09, -0.08, 0.14);
+    const rim = isFront ? Math.pow(1 - Math.min(1, Math.abs(nz2)), 2.2) * 0.26 : 0.04;
+    const depthBoost = clamp((z2 + 0.8) * 0.08, -0.06, 0.12);
 
     const aoFactor = ao !== undefined ? ao : 0.8;
-    const rawShade = (0.12 + 0.72 * diff1 + 0.16 * dot2 + rim + depthBoost) * (0.45 + 0.55 * aoFactor);
-    const shade = clamp(rawShade, 0.09, 1.0);
+    const rawShade = (0.16 + 0.68 * diff1 + 0.16 * dot2 + rim + depthBoost) * (0.48 + 0.52 * aoFactor);
+    const shade = clamp(rawShade, 0.12, 1.0);
     let charIdx = Math.round(shade * (RAMP_LEN - 1));
     if (charIdx < 1) charIdx = 1;
-    charBuf[idx] = charIdx;
 
-    const lum = (isFront ? 0.30 + 0.82 * shade : 0.22 + 0.42 * shade);
-    const sheen = isFront && shade > 0.88 ? (shade - 0.88) * 60 : 0;
-    rBuf[idx] = clamp(cr * lum + sheen, 0, 255);
-    gBuf[idx] = clamp(cg * lum + sheen, 0, 255);
-    bBuf[idx] = clamp(cb * lum + sheen, 0, 255);
+    const lum = isFront ? 0.34 + 0.78 * shade : 0.20 + 0.36 * shade;
+    const sheen = isFront && shade > 0.90 ? (shade - 0.90) * 48 : 0;
+    const rr = clamp(cr * lum + sheen, 0, 255);
+    const gg = clamp(cg * lum + sheen, 0, 255);
+    const bb = clamp(cb * lum + sheen, 0, 255);
+
+    // Primary cell
+    writeCell(col, row, z2, charIdx, rr, gg, bb);
+
+    // Sub-cell gap-closing splat on solid petals/disks so background NEVER bleeds through pinholes!
+    if (splat) {
+      const fracX = fx - col;
+      const fracY = fy - row;
+      const zBias = z2 - 0.022;
+      if (fracX > 0.56) writeCell(col + 1, row, zBias, charIdx, rr, gg, bb);
+      else if (fracX < 0.44) writeCell(col - 1, row, zBias, charIdx, rr, gg, bb);
+      if (fracY > 0.58) writeCell(col, row + 1, zBias, charIdx, rr, gg, bb);
+      else if (fracY < 0.42) writeCell(col, row - 1, zBias, charIdx, rr, gg, bb);
+    }
   }
 
   function renderFrame(dt) {
@@ -1022,12 +1117,12 @@
       projectPoint(
         p.x, p.y, p.z,
         p.nx, p.ny, p.nz,
-        p.r, p.g, p.b, p.ao,
+        p.r, p.g, p.b, p.ao, p.splat,
         sinY, cosY, sinX, cosX, swaySin, currentZoom, cxPx, cyPx
       );
     }
 
-    // 2. Update & project all 15 flowers
+    // 2. Update & project all 16 flowers
     let openCount = 0;
     for (let f = 0; f < flowers.length; f++) {
       const fl = flowers[f];
@@ -1064,7 +1159,7 @@
         projectPoint(
           wx, wy, wz,
           wnx, wny, wnz,
-          lp.r, lp.g, lp.b, lp.ao,
+          lp.r, lp.g, lp.b, lp.ao, lp.splat,
           sinY, cosY, sinX, cosX, swaySin, currentZoom, cxPx, cyPx
         );
       }
@@ -1117,7 +1212,7 @@
         projectPoint(
           fp.x + rx, fp.y + ry, fp.z + rz,
           0.3, 0.8, 0.5,
-          fp.col[0] * fade, fp.col[1] * fade, fp.col[2] * fade, 0.9,
+          fp.col[0] * fade, fp.col[1] * fade, fp.col[2] * fade, 0.9, 0,
           sinY, cosY, sinX, cosX, 0, currentZoom, cxPx, cyPx
         );
       }
